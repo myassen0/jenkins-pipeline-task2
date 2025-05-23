@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'stage', 'prod'], description: 'Deployment environment')
+        string(name: 'VERSION', defaultValue: '1.0.0', description: 'Version to deploy')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run tests?')
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                echo "Deploying version ${params.VERSION} to ${params.ENVIRONMENT}"
+            }
+        }
+        
+        stage('Test') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                echo "Running tests..."
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo "Deploying to ${params.ENVIRONMENT}"
+            }
+        }
+    }
+}
