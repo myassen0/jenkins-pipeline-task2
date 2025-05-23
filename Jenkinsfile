@@ -8,9 +8,8 @@ pipeline {
     
     environment {
         REPO_URL = 'https://github.com/myassen0/jenkins-pipeline-task2.git'
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -21,7 +20,6 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    // Create a simple file to simulate build
                     writeFile file: 'app.txt', text: "Built at ${new Date()}"
                     archiveArtifacts artifacts: 'app.txt', fingerprint: true
                 }
@@ -31,31 +29,34 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    // Simulate tests
-                    echo "Running tests..."
-                    sh 'echo "Tests passed" > test-results.txt'
-                    junit 'test-results.txt'
+                    // Simulate test in JUnit XML format
+                    writeFile file: 'test-results.xml', text: '''
+                    <testsuite tests="1"><testcase classname="demo" name="test1"/></testsuite>
+                    '''
+                    junit 'test-results.xml'
                 }
             }
         }
         
-        stage('Docker Build') {
+        stage('Docker Build and Push') {
             steps {
                 script {
-                    // Create a simple Dockerfile
                     writeFile file: 'Dockerfile', text: """
                     FROM alpine:latest
                     COPY app.txt /app/
                     CMD cat /app/app.txt
                     """
                     
-                    // Build and push (commented out as we don't have Docker Hub repo yet)
-                    // docker.build("yourdockerhubusername/jenkins-demo:${env.BUILD_NUMBER}").push()
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        sh "docker build -t $DOCKER_USER/jenkins-demo:${env.BUILD_NUMBER} ."
+                        sh "docker push $DOCKER_USER/jenkins-demo:${env.BUILD_NUMBER}"
+                    }
                 }
             }
         }
     }
-    
+
     post {
         always {
             cleanWs()
